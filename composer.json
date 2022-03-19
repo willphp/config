@@ -1,0 +1,29 @@
+{
+  "name": "willphp/config",
+  "description": "config组件用于网站配置管理",
+  "keywords": [
+    "willphp",
+    "一鱼框架",
+    "配置管理"
+  ],
+  "homepage": "http://www.113344.com/",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "no-mind",
+      "email": "24203741@qq.com"
+    }
+  ],
+  "minimum-stability": "stable",
+  "require": {
+    "php": ">=5.4.0"
+  },
+  "autoload": {
+    "files": [
+      "src/helper.php"
+    ],
+    "psr-4": {
+      "willphp\\config\\": "src"
+    }
+  }
+}
