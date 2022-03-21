@@ -72,7 +72,7 @@ config组件用于网站配置管理
 
 ####设置
 
-    config('app.site_name', 'willphp);
+    config('app.site_name', 'willphp');
 
 ####检测
 
