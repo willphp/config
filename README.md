@@ -18,10 +18,10 @@ mvc框架配置处理组件，比ThinkPHP更易用：无需在配置中使用Env
 
 ####使用示例
 
-	Config::load(ROOT.'/config'); //载入公共配置 database.php：default.db_pwd=123
-	Config::load(APP_PATH.'/config'); //载入应用配置 database.php：default.db_pwd=456
-	Config::load(ROOT.'/.env'); //载入本地配置 .env [database]default[db_pwd]=789	
-	$pwd = Config::get('database.default.db_pwd'); //使用最后载入的配置 pwd = 789	
+	Config::load(ROOT.'/config'); //载入公共配置 db_pwd=123
+	Config::load(APP_PATH.'/config'); //载入应用配置db_pwd=456
+	Config::load(ROOT.'/.env'); //载入本地配置 .env db_pwd=789	
+	$pwd = Config::get('database.default.db_pwd'); //获得最后载入db_pwd=789	
 
 ####载入目录
 
