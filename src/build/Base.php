@@ -3,25 +3,25 @@
  | Software: [WillPHP framework]
  | Site: www.113344.com
  |--------------------------------------------------------------------------
- | Author: no-mind <24203741@qq.com>
+ | Author: 无念 <24203741@qq.com>
  | WeChat: www113344
  | Copyright (c) 2020-2022, www.113344.com. All Rights Reserved.
  |-------------------------------------------------------------------------*/
-//获取：env('database.db_host', '127.0.0.1');
 //.env文件示例如下
 /*
- [APP]
- DEBUG = true
- 
- [DATABASE]
- DB_TYPE = mysql
- DB_HOST = localhost
- DB_NAME = test
- DB_USER = root
- DB_PWD =
- DB_PORT = 3306
- DB_CHARSET = utf8
- TABLE_PRE = wp_
+[APP]
+DEBUG = true
+TRACE = true
+
+[DATABASE]
+DEFAULT[DB_TYPE] = mysql
+DEFAULT[DB_HOST] = localhost
+DEFAULT[DB_NAME] = myapp01db
+DEFAULT[DB_USER]= root
+DEFAULT[DB_PWD] = 
+DEFAULT[DB_PORT] = 3306
+DEFAULT[DB_CHARSET] = utf8
+DEFAULT[TABLE_PRE] = wp_
  */
 namespace willphp\config\build;
 /**
@@ -31,108 +31,52 @@ namespace willphp\config\build;
  */
 class Base {	
 	protected static $items = []; //配置集合
-	protected static $env = []; //.env配置集合
 	/**
-	 * 载入.env配置文件
-	 * @param string $file 文件或目录
-	 * @return $this
-	 */
-	public function loadEnv($file = '.env') {	
-		if (is_dir($file)) {
-			$file = $file.'/.env';
-		}		
-		if (is_file($file)) {
-			$env = parse_ini_file($file, true);
-			if ($env) {
-				$this->setEnv($env);
-			}	 
-		}		
-		return $this;
-	}
-	/**
-	 * 设置.env配置
-	 * @param string|array $env 环境变量
-	 * @param mixed $value 值
-	 * @return void
-	 */
-	public function setEnv($env, $value = null) {
-		if (is_array($env)) {
-			$env = array_change_key_case($env, CASE_UPPER);			
-			foreach ($env as $key => $val) {
-				if (is_array($val)) {
-					foreach ($val as $k => $v) {
-						self::$env[$key.'_'.strtoupper($k)] = $v;
-					}
-				} else {
-					self::$env[$key] = $val;
-				}
-			}
-		} else {
-			$name = strtoupper(str_replace('.', '_', $env));			
-			self::$env[$name] = $value;
-		}
-	}
-	/**
-	 * 获取.env配置
-	 * @param string $name env配置名称(支持名称.名称)
-	 * @param mixed $default 默认值(当配置不存在时返回)
-	 * @return array|string
-	 */
-	public static function getEnv($name = '', $default = '') {	
-		if (empty($name)) {
-			return self::$env;
-		}		
-		$name = strtoupper(str_replace('.', '_', $name));	
-		$env = isset(self::$env[$name])? self::$env[$name] : '';
-		return ('' === $env)? $default : $env;
-	}	
-	/**
-	 * 载入配置
-	 * @param array|string  $config 配置数组或文件或目录
+	 * 载入配置：可加载目录(*.php)，文件(.php和.env)，数组
+	 * @param string|array $config 配置
 	 */
 	public function load($config) {
-		if (is_array($config)) {
-			$this->loadArray($config);
-		}
-		if (is_file($config)) {
-			$this->loadFile($config);
-		}
 		if (is_dir($config)) {
-			$this->loadPath($config);
+			foreach (glob($config.'/*.php') as $file) {
+				$name = strtolower(basename($file, '.php'));
+				$data = include $file;
+				$this->array_change_key_case_recursive($data);
+				self::$items[$name] = isset(self::$items[$name])? array_replace_recursive(self::$items[$name], $data) : $data;
+			}
+		} elseif (is_file($config)) {
+			$suffix = substr(strrchr($config, '.'), 1);
+			if ($suffix == 'php') {
+				$name = strtolower(basename($config, '.php'));
+				$data = include $config;
+				$this->array_change_key_case_recursive($data);
+				self::$items[$name] = isset(self::$items[$name])? array_replace_recursive(self::$items[$name], $data) : $data;
+			} elseif ($suffix == 'env') {
+				$env = parse_ini_file($config, true);
+				if ($env) {
+					$this->array_change_key_case_recursive($env);
+					self::$items = array_replace_recursive(self::$items, $env);
+				}
+			}
+		} elseif (is_array($config)) {
+			self::$items = array_replace_recursive(self::$items, $config);
 		}
 	}
 	/**
-	 * 载入配置文件(.php文件)
-	 * @param string $file 配置文件
+	 * 转换键值大小写
+	 * @param array $array
+	 * @return array
 	 */
-	public function loadFile($file) {
-		if (is_file($file) && substr(strrchr($file, '.'), 1) == 'php') {
-			$tmp = include $file;
-			$name = basename($file, '.php');
-			self::$items[$name] = isset(self::$items[$name])? array_merge(self::$items[$name], $tmp) : $tmp;
-		}
-	}
-	/**
-	 * 载入配置目录(目录下所有.php文件)
-	 * @param string $path 配置文件目录
-	 */
-	public function loadPath($path) {
-		if (is_dir($path)) {
-			foreach (glob($path.'/*.php') as $file) {
-				$this->loadFile($file);
+	protected function array_change_key_case_recursive(&$array, $case = CASE_LOWER) {
+		$array = array_change_key_case($array, $case);
+		foreach ($array as $key => $value) {
+			if (is_array($value)) {
+				$this->array_change_key_case_recursive($array[$key], $case);
 			}
 		}
-	}
-	/**
-	 * 载入数组
-	 * @param array $config 配置数组
-	 */
-	public function loadArray(array $config) {
-		self::$items = array_merge(self::$items, $config);
 	}
 	/**
 	 * 获取所有配置
-     * @return array
+	 * @return array
 	 */
 	public function all() {
 		return self::$items;
@@ -146,46 +90,20 @@ class Base {
 		return self::$items = $config;
 	}
 	/**
-	 * 设置配置
-	 * @param string $name 配置名(支持名称.名称表示数组)
-	 * @param mixed $value 配置值
-	 * @return bool
-	 */
-	public function set($name, $value) {
-		$tmp = &self::$items;
-		$name = explode('.', $name);
-		foreach ((array)$name as $cn) {
-			if (!isset($tmp[$cn])) {
-				$tmp[$cn] = [];
-			}
-			$tmp = &$tmp[$cn];
-		}		
-		$tmp = $value;		
-		return true;
-	}
-	/**
-	 * 批量设置配置(支持名称.名称的键名)
-	 * @param array $config 配置数组
-	 * @return bool
-	 */
-	public function batch(array $config) {
-		foreach ($config as $k => $v) {
-			$this->set($k, $v);
-		}		
-		return true;
-	}
-	/**
 	 * 获取配置
-	 * @param string $name 配置名(支持名称.名称表示数组)
-	 * @param mixed $default 默认值(当配置不存在或=''时返回默认值)
+	 * @param string $name 名称(支持名称.名称)
+	 * @param mixed $default 默认值
 	 * @return mixed
 	 */
-	public function get($name, $default = '') {
+	public function get($name = '', $default = '') {
+		if (empty($name)) {
+			return self::$items;
+		}
 		$tmp = self::$items;
 		$name = explode('.', $name);
-		foreach ((array)$name as $cn) {
-			if (isset($tmp[$cn])) {
-				$tmp = $tmp[$cn];
+		foreach ((array)$name as $na) {
+			if (isset($tmp[$na])) {
+				$tmp = $tmp[$na];
 			} else {
 				return $default;
 			}
@@ -193,16 +111,34 @@ class Base {
 		return ('' === $tmp)? $default : $tmp;
 	}
 	/**
-	 * 检测配置是否存在
-	 * @param string $name 配置名(支持名称.名称)
-	 * @return mixed
+	 * 设置配置
+	 * @param string $name 名称(支持名称.名称)
+	 * @param mixed $value 值
+	 * @return $value
+	 */
+	public function set($name, $value = '') {
+		$tmp = &self::$items;
+		$name = explode('.', $name);
+		foreach ((array)$name as $na) {
+			if (!isset($tmp[$na])) {
+				$tmp[$na] = [];
+			}
+			$tmp = &$tmp[$na];
+		}
+		$tmp = $value;
+		return $value;
+	}
+	/**
+	 * 检测配置
+	 * @param string $name 名称(支持名称.名称)
+	 * @return boolean
 	 */
 	public function has($name) {
 		$tmp = self::$items;
 		$name = explode('.', $name);
-		foreach ((array)$name as $cn) {
-			if (isset($tmp[$cn])) {
-				$tmp = $tmp[$cn];
+		foreach ((array)$name as $na) {
+			if (isset($tmp[$na])) {
+				$tmp = $tmp[$na];
 			} else {
 				return false;
 			}
@@ -210,7 +146,7 @@ class Base {
 		return true;
 	}
 	/**
-	 * 排除字段获取配置数据
+	 * 排除字段获取
 	 * @param string $name 配置名(支持名称.名称)
 	 * @param array  $extName 排除的字段
 	 * @return array

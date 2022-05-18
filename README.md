@@ -1,78 +1,114 @@
-# 配置管理
-config组件用于网站配置管理
+# 配置处理
+
+mvc框架配置处理组件，比ThinkPHP更易用：无需在配置中使用Env::get获取.env配置。
 
 #开始使用
 
 ####安装组件
+
 使用 composer 命令进行安装或下载源代码使用。
 
     composer require willphp/config
 
-> WillPHP 框架已经内置此组件，无需再安装。
+> WillPHP框架已经内置此组件，无需再安装。
 
 ####调用方式
 
-    \willphp\config\Config::get('app'); //直接调用或使用config函数
+    \willphp\config\Config::get('app.name'); //获取$app['name']
 
-####载入env配置
+####使用示例
 
-    Config::loadEnv(WIPHP_URI.'/.env'); //加载目录(.env所在目录)或.env文件
+	Config::load(ROOT.'/config'); //载入公共配置 database.php：default.db_pwd=123
+	Config::load(APP_PATH.'/config'); //载入应用配置 database.php：default.db_pwd=456
+	Config::load(ROOT.'/.env'); //载入本地配置 .env [database]default[db_pwd]=789	
+	$pwd = Config::get('database.default.db_pwd'); //使用最后载入的配置 pwd = 789	
 
-.env文件示例如下：
+####载入目录
 
-     [APP]
-     DEBUG = true
-     
-     [DATABASE]
-     DB_TYPE = mysql
-     DB_HOST = localhost
-     DB_NAME = test
-     DB_USER = root
-     DB_PWD =
-     DB_PORT = 3306
-     DB_CHARSET = utf8
-     TABLE_PRE = wp_
+    Config::load(__DIR__.'/config'); //加载config/*.php
 
-####获取env配置
+####载入文件
 
-    env('database.db_host', '127.0.0.1'); //读取.env文件中的[DATABASE]DB_HOST配置，默认127.0.0.1
+    Config::load(__DIR__.'/config/app.php'); //加载app.php
 
-####载入配置
+app.php文件配置示例(所有键名载入后自动转为小写)：
 
-    Config::load($config); //载入配置数组或文件或目录
-    Config::loadFile($file); //载入配置文件(.php文件)	
-    Config::loadPath($path); //载入配置目录(目录下所有.php文件)
-    Config::loadArray($array); //载入数组配置	
+    <?php
+    return [
+	  'debug' => true,
+	  'name' => 'home', 
+    ];
+
+####载入.env
+
+     Config::load(__DIR__.'/.env');
+
+.env文件配置示例(所有键名载入后自动转为小写)：
+
+	[APP]
+	DEBUG = true
+	TRACE = true
+	
+	[DATABASE]
+	DEFAULT[DB_TYPE] = mysqli
+	DEFAULT[DB_HOST] = localhost
+	DEFAULT[DB_NAME] = myapp01db
+	DEFAULT[DB_USER]= root
+	DEFAULT[DB_PWD] = 
+	DEFAULT[DB_PORT] = 3306
+	DEFAULT[DB_CHARSET] = utf8
+	DEFAULT[TABLE_PRE] = wp_
 
 ####设置配置
 
-    Config::set('app.debug', true); //配置名支持名称.名称
-    Config::batch(['app.debug'=>true,'database.db_pwd','123']); //批量设置
-    Config::reset([]); //重置所有配置
+    Config::set('app.debug', false); 
+    Config::reset([]); //重置
+
+####获取所有
+
+    Config::all(); 
 
 ####检测配置
 
-    Config::has('app.key'); //是否存在配置
+    Config::has('app.key'); 
 
 ####获取配置
 
-    Config::get('database.db_host', 'localhost'); //获取配置(支持名称.名称)，不存在或=''返回默认值
-    Config::all(); //获取所有配置
-    Config::getExtName('database', ['write', 'read']); //排除键名获取
+    Config::get('database.default.db_host', '127.0.0.1'); //获取，不存在或=''返回localhost
+    Config::getExtName('database', ['read']); //排除获取
 
-#config函数
+#助手函数
+
+已去除内置，请自行设置此函数。
+	
+	/**
+	 * 获取或设置配置
+	 * @param string $name 参数名
+	 * @param mixed $value 参数值
+	 * @return mixed
+	 */
+	function config($name = '', $value = '') {
+		if (!$name) {
+			return \willphp\config\Config::all();
+		}
+		if ('' === $value) {
+			return (0 === strpos($name, '?'))? \willphp\config\Config::has(substr($name, 1)) : \willphp\config\Config::get($name);
+		}
+		return \willphp\config\Config::set($name, $value);
+	}
+	
 
 ####获取全部
 
     $config = config();
 
-####获取
-	
-    $name= config('app.site_name');
-
 ####设置
 
     config('app.site_name', 'willphp');
+
+####获取
+	
+    $name= config('app.site_name');
 
 ####检测
 
